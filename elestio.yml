@@ -1,0 +1,23 @@
+config:
+  runTime: "static"
+  version: ""
+  framework: "vite"
+  buildCommand: "npm run build"
+  buildDir: "dist"
+  runCommand: "npm run preview"
+  ports:
+    - protocol: "HTTPS"
+      targetProtocol: "HTTP"
+      listeningPort: "443"
+      targetPort: "3000"
+      targetIP: "172.17.0.1"
+      public: true
+      path: "/"
+      isAuth: false
+      login: ""
+      password: ""
+  exposedPorts:
+    - protocol: "HTTP"
+      hostPort: "3000"
+      containerPort: "80"
+      interface: "172.17.0.1" 
