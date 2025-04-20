@@ -1,12 +1,10 @@
 config:
-  runTime: "static"
+  runTime: "fullstack"
   version: ""
-  framework: "vite"
+  framework: "custom"
 
 build:
-  commands:
-    - npm install
-    - npm run build
+  commands: []
 
 run:
   command: ./node_modules/.bin/serve dist -l 80
