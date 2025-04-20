@@ -9,4 +9,4 @@ build:
     - npm run build
 
 run:
-  command: npx serve dist -l 80
+  command: ./node_modules/.bin/serve dist -l 80
