@@ -7,5 +7,6 @@ RUN npm install && npm run build
 # Serve phase
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"] 
+EXPOSE 8080
+RUN sed -i 's/listen       80;/listen       8080;/' /etc/nginx/conf.d/default.conf
+CMD ["nginx", "-g", "daemon off;"]
