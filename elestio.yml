@@ -19,5 +19,5 @@ config:
   exposedPorts:
     - protocol: "HTTP"
       hostPort: "3000"
-      containerPort: "80"
-      interface: "172.17.0.1" 
+      containerPort: "3000"
+      interface: "172.17.0.1"
