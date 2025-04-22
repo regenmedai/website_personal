@@ -3,6 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}", // Scans src directory including App.jsx
+    "./chatbot/**/*.{js,ts,jsx,tsx}", // <-- Add this line to scan the chatbot directory
   ],
   theme: {
     extend: {

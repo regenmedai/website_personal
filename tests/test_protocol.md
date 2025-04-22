@@ -1,0 +1,67 @@
+# Chatbot Test Protocol
+
+This document outlines the test procedures for the regenmed.ai chatbot application, covering frontend interactions, backend API endpoints, and end-to-end flows.
+
+## 1. Prerequisites
+
+Before starting testing, ensure the following conditions are met:
+
+*   **Environment Variables:**
+    *   `chatbot/.env` file exists and is populated with correct credentials (Google Client ID/Secret, Gemini API Key, valid Session Secret) and `GOOGLE_REDIRECT_URI=http://localhost:3001/oauth2callback`.
+    *   Root `.env` file exists and contains `VITE_API_BASE_URL=http://localhost:3001`.
+*   **Google Cloud Console:**
+    *   The OAuth 2.0 Client ID has both `http://localhost:3001/oauth2callback` and the production redirect URI (`https://regenmedai.com/oauth2callback`) listed under "Authorized redirect URIs".
+    *   Google Calendar API and Gmail API are enabled for the project.
+*   **Servers Running:**
+    *   Backend server is running (`cd chatbot && npm start`).
+    *   Frontend dev server is running (`npm run dev` in the root directory).
+*   **Backend Authentication:** The backend server has been authenticated with the target Google account by visiting `http://localhost:3001/auth/google` and completing the consent flow at least once.
+
+## 2. Frontend UI Tests (Manual)
+
+Access the application via the frontend URL (e.g., `http://localhost:5173`).
+
+| Test ID | Component     | Description                                        | Steps                                                                                                                               | Expected Result                                                                                                     |
+| :------ | :------------ | :------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ |
+| FE-01   | Chatbot UI    | Verify chatbot bubble button appears on load.    | 1. Load the website.                                                                                                              | Chat bubble icon appears in the bottom-right corner.                                                              |
+| FE-02   | Chatbot UI    | Verify chat window opens and shows greeting.       | 1. Click the chat bubble button.                                                                                                    | Chat window opens, displaying the title "Rex - regenmed.ai Assistant" and the initial greeting message from the bot. |
+| FE-03   | Chatbot UI    | Verify chat window closes.                         | 1. Open the chat window. <br> 2. Click the close button (X) in the chat window header.                                              | Chat window closes, chat bubble reappears.                                                                        |
+| FE-04   | Chat Input    | Verify user can type in the input field.           | 1. Open the chat window. <br> 2. Click into the input field. <br> 3. Type text.                                                    | Typed text appears in the input field.                                                                            |
+| FE-05   | Chat Input    | Verify send button enables/disables correctly.   | 1. Open chat. <br> 2. Observe send button (should be disabled). <br> 3. Type text. <br> 4. Observe send button (should be enabled). | Send button is disabled when input is empty, enabled when input has text (ignoring whitespace).                 |
+| FE-06   | Chat Send     | Verify sending message via Send button.          | 1. Open chat. <br> 2. Type a message (e.g., "Hello"). <br> 3. Click the Send button.                                             | User message appears in chat history. Loading indicator shows briefly. Bot reply appears below user message.    |
+| FE-07   | Chat Send     | Verify sending message via Enter key.            | 1. Open chat. <br> 2. Type a message (e.g., "What services do you offer?"). <br> 3. Press Enter key.                             | User message appears in chat history. Loading indicator shows briefly. Bot reply appears below user message.    |
+| FE-08   | Chat Display  | Verify user and bot messages are styled correctly. | 1. Send a message and receive a reply.                                                                                              | User messages appear right-aligned with primary background. Bot messages appear left-aligned with gray background. |
+| FE-09   | Chat Scroll   | Verify chat window scrolls to bottom.            | 1. Send multiple messages until the chat window content exceeds the visible height.                                                 | Chat window automatically scrolls down to show the latest message.                                                |
+| FE-10   | Chat Loading  | Verify input/button disable during loading.      | 1. Send a message. <br> 2. While the loading indicator is active, try to type or click Send.                                     | Input field and Send button are disabled while waiting for the bot's response.                                   |
+
+## 3. Backend API Tests (Manual - Using `curl` or Postman)
+
+Target Base URL: `http://localhost:3001`
+
+| Test ID | Endpoint              | Method | Description                                          | Steps                                                                                                | Expected Result                                                                                                                                |
+| :------ | :-------------------- | :----- | :--------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| BE-01   | `/auth/google`        | GET    | Verify initiation of Google OAuth flow.            | 1. Access `http://localhost:3001/auth/google` in a browser.                                          | Browser redirects to a Google login/consent screen (`accounts.google.com/...`).                                                                |
+| BE-02   | `/oauth2callback`     | GET    | Verify handling of successful OAuth callback.      | 1. Complete the Google consent flow started in BE-01.                                                | Browser redirects back to `CLIENT_ORIGIN` (e.g., `http://localhost:5173`). Backend console logs "Authentication successful!".                      |
+| BE-03   | `/api/auth/status`    | GET    | Verify auth status check (when authenticated).     | 1. Ensure BE-02 was completed successfully in the current browser session. <br> 2. Call the endpoint. | Returns `200 OK` with JSON `{"isAuthenticated": true}`.                                                                                          |
+| BE-04   | `/api/auth/status`    | GET    | Verify auth status check (when not authenticated). | 1. Use a different browser/incognito window (no session). <br> 2. Call the endpoint.                   | Returns `200 OK` with JSON `{"isAuthenticated": false}`.                                                                                         |
+| BE-05   | `/api/chat`           | POST   | Verify basic chat response.                        | 1. Send POST with JSON body: `{"message": "Hi"}`.                                                     | Returns `200 OK` with JSON `{"reply": "..."}` containing a text response from the LLM.                                                            |
+| BE-06   | `/api/chat`           | POST   | Verify chat response with history.                 | 1. Send POST with JSON body: `{"message": "Yes", "history": [{"role": "user", "parts":[{"text":"Hi"}]}, {"role": "model", "parts":[{"text":"Hello there!"}]}]}` | Returns `200 OK` with JSON `{"reply": "..."}` containing a relevant response based on the history.                                             |
+| BE-07   | `/api/chat`           | POST   | Verify error handling for missing message.         | 1. Send POST with empty JSON body `{}`.                                                              | Returns `400 Bad Request` with JSON `{"error": "Message is required."}`.                                                                      |
+| BE-08   | `/api/schedule`       | POST   | Verify scheduling success (requires auth).         | 1. Ensure backend is authenticated (BE-02). <br> 2. Send POST with valid JSON: `{"name": "Test", "email": "your_test_email@example.com", "dateTime": "YYYY-MM-DDTHH:mm:ssZ"}` (Use a valid future date/time and real email). | Returns `200 OK` with JSON `{"success": true, ...}`. Backend logs event creation/email sending. Check Google Calendar and recipient email inbox. |
+| BE-09   | `/api/schedule`       | POST   | Verify error if not authenticated.                 | 1. Use a client without a valid session cookie. <br> 2. Send POST with valid JSON data.               | Returns `401 Unauthorized` with JSON `{"error": "Authentication required..."}`.                                                               |
+| BE-10   | `/api/schedule`       | POST   | Verify error for missing data (e.g., email).       | 1. Ensure backend is authenticated. <br> 2. Send POST with JSON: `{"name": "Test", "dateTime": "..."}`. | Returns `400 Bad Request` with JSON `{"error": "Missing required scheduling information..."}`.                                                    |
+| BE-11   | `/api/schedule`       | POST   | Verify error for invalid date format.              | 1. Ensure backend is authenticated. <br> 2. Send POST with JSON: `{"name": "Test", "email": "...", "dateTime": "invalid-date"}`. | Returns `400 Bad Request` with JSON `{"error": "Invalid dateTime format provided..."}`.                                                        |
+
+## 4. End-to-End Tests (Manual)
+
+| Test ID | Flow                     | Description                                                                    | Steps                                                                                                                                                                                                                              | Expected Result                                                                                                                                                               |
+| :------ | :----------------------- | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E2E-01  | Basic Chat Interaction   | Verify a simple question-answer flow works correctly.                          | 1. Open chat. <br> 2. Ask "What do you do?". <br> 3. Verify response.                                                                                                                                             | Bot provides a relevant answer based on its system prompt regarding regenmed.ai's services.                                                                                   |
+| E2E-02  | Scheduling Intent        | Verify the bot asks for details when scheduling intent is expressed.           | 1. Open chat. <br> 2. Send message like "I want to schedule a consultation".                                                                                                                                     | Bot responds asking for name, email, phone, and/or date/time.                                                                                                                 |
+| E2E-03  | Full Scheduling *(Partially Manual)* | Verify successful scheduling from chat initiation to calendar/email confirmation. | 1. Ensure backend is authenticated. <br> 2. Initiate scheduling conversation (E2E-02). <br> 3. Provide requested details (name, email, phone, date/time) to the bot. <br> 4. **(Manual Step)** Trigger the `/api/schedule` call from frontend (using dev tools or temporary button) with collected data. <br> 5. Observe chat for success message. | Chat shows success message. Event appears correctly in the owner's Google Calendar. Confirmation email (matching format) is received at the provided client email address. |
+
+**Notes:**
+
+*   E2E-03 requires manual intervention until the frontend logic for collecting scheduling details and calling `/api/schedule` is implemented.
+*   Replace placeholders like `your_test_email@example.com` and `YYYY-MM-DDTHH:mm:ssZ` with actual valid data during testing.
+*   Monitor both frontend browser console and backend server console for errors during testing. 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 // Using Lucide icons for a clean look
 import { Menu, X, Briefcase, BrainCircuit, Activity, CheckCircle } from 'lucide-react';
+import Chatbot from '../chatbot/Chatbot';
 
 // Main App Component
 function App() {
@@ -188,6 +189,9 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* === Chatbot Component === */}
+      <Chatbot />
     </div>
   );
 }

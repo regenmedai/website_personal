@@ -129,4 +129,8 @@ dist
 .DS_Store
 
 # Vite build output
-dist/ 
+dist/
+
+# Google Cloud SDK / CLI archives and directories
+google-cloud-sdk 2/
+*.tar.gz 
